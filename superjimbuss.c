@@ -44,6 +44,24 @@ WinMain(
         return 0;
     }
 
+    HDC dc = GETDC(NULL);
+
+    BITMAPINFOHEADER bmp_info_header = {0};
+    bmp_info_header.biSize = sizeof(BITMAPINFOHEADER);
+    bmp_info_header.biWidth = 200;
+    bmp_info_header.biHeight = 200;
+    bmp_info_header.biPlanes = 1;
+    bmp_info_header.biBitCount = 24;
+    bmp_info_header.biCompression = BI_RGB;
+    bmp_info_header.biSizeImage = 0;
+    bmp_info_header.biClrUsed = 0;
+    bmp_info_header.biClrImportant = 0;
+
+    BITMAPINFO bmp_info = {.bmiHeader = bmp_info_header};
+    void *pv;
+
+    HBITMAP bitmap_image = CreateDIBSection(dc, &bmp_info, DIB_RGB_COLORS, &pv, NULL, 0);
+
     ShowWindow(window, cmd_show);
 
     MSG message = {0};
