@@ -1,4 +1,11 @@
+#include <stdbool.h>
 #include <windows.h>
+
+#define internal static
+#define local_persist static
+#define global static
+
+global bool running;
 
 LRESULT CALLBACK
 window_proc(
@@ -7,6 +14,9 @@ window_proc(
     WPARAM wparam,
     LPARAM lparam
 );
+
+internal void
+resize_dib_section(void);
 
 int WINAPI
 WinMain(
@@ -65,14 +75,22 @@ WinMain(
     ShowWindow(window, cmd_show);
 
     MSG message = {0};
+    running = true;
 
-    while (GetMessageA(&message, NULL, 0, 0) > 0)
+    while (running)
     {
+        GetMessageA(&message, NULL, 0, 0);
         TranslateMessage(&message);
         DispatchMessageA(&message);
     }
 
     return 0;
+}
+
+internal void
+resize_dib_section(void)
+{
+
 }
 
 LRESULT CALLBACK window_proc(
@@ -82,20 +100,33 @@ LRESULT CALLBACK window_proc(
     LPARAM lparam
 )
 {
+    LRESULT result = 0;
     switch (message)
     {
+        case WM_CLOSE:
+        {
+            running = false;
+        } break;
         case WM_DESTROY:
         {
-            PostQuitMessage(0);
-        } return 0;
+            running = false;
+        } break;
         case WM_PAINT:
         {
             PAINTSTRUCT paint;
             HDC dc = BeginPaint(window, &paint);
             FillRect(dc, &paint.rcPaint, (HBRUSH)(COLOR_WINDOW + 1));
             EndPaint(window, &paint);
-        } return 0;
+        } break;
+        case WM_SIZE:
+        {
+            resize_dib_section();
+        } break;
+        default:
+        {
+            return DefWindowProcA(window, message, wparam, lparam);
+        }
     }
-
-    return DefWindowProcA(window, message, wparam, lparam);
+    
+    return result;
 }
