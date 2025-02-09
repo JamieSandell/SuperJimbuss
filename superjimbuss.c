@@ -8,7 +8,7 @@
 global bool running;
 
 LRESULT CALLBACK
-window_proc(
+win32_main_windows_callback(
     HWND window,
     UINT message,
     WPARAM wparam,
@@ -16,7 +16,10 @@ window_proc(
 );
 
 internal void
-resize_dib_section(void);
+win32_resize_dib_section(int width, int height);
+
+internal void
+win32_update_window
 
 int WINAPI
 WinMain(
@@ -28,7 +31,7 @@ WinMain(
 {
     const char class_name[] = "SuperJimbuss";
     WNDCLASS window_class = {0};
-    window_class.lpfnWndProc = window_proc;
+    window_class.lpfnWndProc = win32_main_windows_callback;
     window_class.hInstance = instance;
     window_class.lpszClassName = class_name;
     RegisterClassA(&window_class);
@@ -70,16 +73,32 @@ WinMain(
     BITMAPINFO bmp_info = {.bmiHeader = bmp_info_header};
     void *pv;
 
-    HBITMAP bitmap_image = CreateDIBSection(dc, &bmp_info, DIB_RGB_COLORS, &pv, NULL, 0);
+    HBITMAP bitmap_image = CreateDIBSection(
+        dc,
+        &bmp_info,
+        DIB_RGB_COLORS,
+        &pv,
+        NULL,
+        0
+    );
 
-    ShowWindow(window, cmd_show);
+    ShowWindow(
+        window,
+        cmd_show
+    );
 
     MSG message = {0};
     running = true;
 
     while (running)
     {
-        GetMessageA(&message, NULL, 0, 0);
+        GetMessageA(
+            &message,
+            NULL,
+            0,
+            0
+        );
+
         TranslateMessage(&message);
         DispatchMessageA(&message);
     }
@@ -88,12 +107,12 @@ WinMain(
 }
 
 internal void
-resize_dib_section(void)
+win32_resize_dib_section(int width, int height)
 {
 
 }
 
-LRESULT CALLBACK window_proc(
+LRESULT CALLBACK win32_main_windows_callback(
     HWND window,
     UINT message,
     WPARAM wparam,
@@ -114,17 +133,43 @@ LRESULT CALLBACK window_proc(
         case WM_PAINT:
         {
             PAINTSTRUCT paint;
-            HDC dc = BeginPaint(window, &paint);
-            FillRect(dc, &paint.rcPaint, (HBRUSH)(COLOR_WINDOW + 1));
-            EndPaint(window, &paint);
+            HDC dc = BeginPaint(
+                window,
+                &paint
+            );
+
+            FillRect(
+                dc,
+                &paint.rcPaint,
+                (HBRUSH)(COLOR_WINDOW + 1)
+            );
+
+            EndPaint(
+                window,
+                &paint
+            );
         } break;
         case WM_SIZE:
         {
-            resize_dib_section();
+            RECT client_rect;
+
+            GetClientRect(
+                window,
+                &client_rect
+            );
+
+            win32_resize_dib_section(
+                client_rect.right - client_rect.left,
+                client_rect.bottom - client_rect.top
+            );
         } break;
         default:
         {
-            return DefWindowProcA(window, message, wparam, lparam);
+            return DefWindowProcA(
+                window,
+                message,
+                wparam,
+                lparam);
         }
     }
     
