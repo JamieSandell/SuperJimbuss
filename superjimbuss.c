@@ -5,6 +5,11 @@
 #define local_persist static
 #define global static
 
+global BITMAPINFO bitmap_info;
+global void *bitmap_memory;
+global int bitmap_height;
+global int bitmap_width;
+global const int bytes_per_pixel = 4;
 global bool running;
 
 LRESULT CALLBACK
@@ -16,10 +21,16 @@ win32_main_windows_callback(
 );
 
 internal void
-win32_resize_dib_section(int width, int height);
+win32_resize_dib_section(
+    int width,
+    int height
+);
 
 internal void
-win32_update_window
+win32_update_window(
+    HDC device_context,
+    RECT *client_rect
+);
 
 int WINAPI
 WinMain(
@@ -57,31 +68,6 @@ WinMain(
         return 0;
     }
 
-    HDC dc = GETDC(NULL);
-
-    BITMAPINFOHEADER bmp_info_header = {0};
-    bmp_info_header.biSize = sizeof(BITMAPINFOHEADER);
-    bmp_info_header.biWidth = 200;
-    bmp_info_header.biHeight = 200;
-    bmp_info_header.biPlanes = 1;
-    bmp_info_header.biBitCount = 24;
-    bmp_info_header.biCompression = BI_RGB;
-    bmp_info_header.biSizeImage = 0;
-    bmp_info_header.biClrUsed = 0;
-    bmp_info_header.biClrImportant = 0;
-
-    BITMAPINFO bmp_info = {.bmiHeader = bmp_info_header};
-    void *pv;
-
-    HBITMAP bitmap_image = CreateDIBSection(
-        dc,
-        &bmp_info,
-        DIB_RGB_COLORS,
-        &pv,
-        NULL,
-        0
-    );
-
     ShowWindow(
         window,
         cmd_show
@@ -106,12 +92,6 @@ WinMain(
     return 0;
 }
 
-internal void
-win32_resize_dib_section(int width, int height)
-{
-
-}
-
 LRESULT CALLBACK win32_main_windows_callback(
     HWND window,
     UINT message,
@@ -133,16 +113,14 @@ LRESULT CALLBACK win32_main_windows_callback(
         case WM_PAINT:
         {
             PAINTSTRUCT paint;
-            HDC dc = BeginPaint(
+            HDC device_context = BeginPaint(
                 window,
                 &paint
             );
 
-            FillRect(
-                dc,
-                &paint.rcPaint,
-                (HBRUSH)(COLOR_WINDOW + 1)
-            );
+            RECT client_rect = {0};
+            GetClientRect(window, &client_rect);
+            win32_update_window(device_context, &client_rect);
 
             EndPaint(
                 window,
@@ -174,4 +152,52 @@ LRESULT CALLBACK win32_main_windows_callback(
     }
     
     return result;
+}
+
+internal void
+win32_resize_dib_section(int width, int height)
+{
+    if (bitmap_memory)
+    {
+        VirtualFree(bitmap_memory, 0, MEM_RELEASE);
+    }
+
+    bitmap_width = width;
+    bitmap_height = height;
+
+    bitmap_info.bmiHeader.biSize = sizeof(bitmap_info.bmiHeader);
+    bitmap_info.bmiHeader.biWidth = bitmap_width;
+    bitmap_info.bmiHeader.biHeight = bitmap_height;
+    bitmap_info.bmiHeader.biPlanes = 1;
+    bitmap_info.bmiHeader.biBitCount = 32;
+    bitmap_info.bmiHeader.biCompression = BI_RGB;
+    
+    int bitmap_memory_size = bytes_per_pixel * bitmap_width * bitmap_height;
+    bitmap_memory = VirtualAlloc(0, bitmap_memory_size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+}
+
+internal void
+win32_update_window(
+    HDC device_context,
+    RECT *client_rect
+)
+{
+    int window_width = client_rect->right - client_rect->left;
+    int window_height = client_rect->bottom - client_rect->top;
+
+    StretchDIBits(
+        device_context,
+        0,
+        0,
+        window_width,
+        window_height,
+        0,
+        0,
+        bitmap_width,
+        bitmap_height,
+        bitmap_memory,
+        &bitmap_info,
+        DIB_RGB_COLORS,
+        SRCCOPY
+    );
 }
